@@ -5,6 +5,7 @@ Docstring for schemas.schema_user
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from pydantic import ConfigDict
 
 class UserBase(BaseModel):
     '''Esquema base para los usuarios'''
@@ -38,3 +39,5 @@ class UserLogin(BaseModel):
     numero_telefono :Optional [str]= None
     correo_electronico : Optional[str] = None
     contrasena: str
+    class Config:
+        model_config = ConfigDict(from_attributes=True)

@@ -1,29 +1,30 @@
 from fastapi import FastAPI
-from routes import routes_rol, routes_user, routes_auto, routes_services, routes_auto_servicio
+from config.db import engine, Base
+
+# 1. IMPORT MODELS (Cleaned up duplicates)
+from models.model_auto import Vehiculo
+import models.model_rol
+import models.model_usuario
+import models.model_services
+import models.model_auto_servicio
+
+# 2. IMPORT ROUTERS
+from routes.routes_rol import rol
+from routes.routes_usuario import usuario
+from routes.routes_services import services
+from routes.routes_auto_servicio import auto_servicio
+from routes.routes_auto import auto  # <--- Added this import
 
 app = FastAPI(
-    title="Autolavado Backend",
-    description="API para gestionar autos, servicios y usuarios del autolavado",
-    version="1.0.0"
+    title="API  - AutolavadoBackend_230496"
 )
 
-# Incluir routers
-app.include_router(routes_rol.router)
-app.include_router(routes_user.router)
-app.include_router(routes_auto.router)
-app.include_router(routes_services.router)
-app.include_router(routes_auto_servicio.router)
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
-@app.get("/")
-def read_root():
-    return {
-        "mensaje": "Bienvenido a la API del Autolavado",
-        "version": "1.0.0",
-        "endpoints": {
-            "roles": "/roles",
-            "usuarios": "/usuarios",
-            "autos": "/autos",
-            "servicios": "/servicios",
-            "auto-servicios": "/auto-servicios"
-        }
-    }
+# 3. INCLUDE ROUTERS
+app.include_router(rol)
+app.include_router(usuario)
+app.include_router(services)
+app.include_router(auto_servicio)
+app.include_router(auto)

@@ -1,67 +1,69 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
+import auth
 
-import crud.crud_auto as crud_auto
-import config.db as db_config
-import schemas.schema_auto as schema_auto
-import models.auto as model_auto
+# 1. IMPORTACIÓN CORREGIDA: Traemos 'Vehiculo' que es el nombre real en tu modelo
+from models.model_auto import Vehiculo as VehiculoModel
+from schemas.schema_auto import Vehiculo as VehiculoSchema, VehiculoCreate, VehiculoUpdate 
+from config.db import get_db
 
-router = APIRouter(
-    prefix="/autos",
-    tags=["autos"]
-)
+auto = APIRouter()
 
-def get_db():
-    db = db_config.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@router.get("/", response_model=list[schema_auto.Auto])
-def read_autos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """Obtener todos los autos"""
-    autos = crud_auto.get_auto(db, skip=skip, limit=limit)
+@auto.get("/autos/", response_model=List[VehiculoSchema], tags=["Autos"])
+def read_autos(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: str = Depends(auth.get_current_user)):
+    # Usamos VehiculoModel (SQLAlchemy) para la consulta
+    autos = db.query(VehiculoModel).offset(skip).limit(limit).all()
     return autos
 
-@router.get("/{auto_id}", response_model=schema_auto.Auto)
-def read_auto(auto_id: int, db: Session = Depends(get_db)):
-    """Obtener un auto específico por ID"""
-    auto = db.query(model_auto.Auto).filter(model_auto.Auto.id == auto_id).first()
-    if not auto:
-        raise HTTPException(status_code=404, detail="Auto no encontrado")
-    return auto
+@auto.get("/autos/{id}", response_model=VehiculoSchema, tags=["Autos"])
+def read_auto(id: int, db: Session = Depends(get_db), current_user: str = Depends(auth.get_current_user)):
+    # Nota: Tu modelo tiene 'Id' con mayúscula en la base de datos según lo que me mostraste
+    db_auto = db.query(VehiculoModel).filter(VehiculoModel.Id == id).first()
+    if db_auto is None:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
+    return db_auto
 
-@router.post("/", response_model=schema_auto.Auto)
-def create_auto(auto: schema_auto.AutoCreate, db: Session = Depends(get_db)):
-    """Crear un nuevo auto"""
-    db_auto = model_auto.Auto(**auto.dict())
+@auto.post("/autos/", response_model=VehiculoSchema, tags=["Autos"])
+def create_auto_route(vehiculo: VehiculoCreate, db: Session = Depends(get_db), current_user: str = Depends(auth.get_current_user)):
+    db_auto = VehiculoModel(
+        usuario_Id=vehiculo.usuario_Id, # Asegúrate que coincida con las mayúsculas de tu modelo
+        placa=vehiculo.placa,
+        # marca=vehiculo.marca, # Cuidado: 'marca' NO estaba en el modelo que me pasaste
+        modelo=vehiculo.modelo,
+        serie=vehiculo.serie,
+        color=vehiculo.color,
+        tipo=vehiculo.tipo,
+        anio=str(vehiculo.anio) if vehiculo.anio else None, 
+        estado=vehiculo.estado,
+        fecha_registro=vehiculo.fecha_registro,
+        fecha_actualizacion=vehiculo.fecha_actualizacion
+    )
     db.add(db_auto)
     db.commit()
     db.refresh(db_auto)
     return db_auto
 
-@router.put("/{auto_id}", response_model=schema_auto.Auto)
-def update_auto(auto_id: int, auto: schema_auto.AutoUpdate, db: Session = Depends(get_db)):
-    """Actualizar un auto existente"""
-    db_auto = db.query(model_auto.Auto).filter(model_auto.Auto.id == auto_id).first()
-    if not db_auto:
-        raise HTTPException(status_code=404, detail="Auto no encontrado")
+@auto.put("/autos/{id}", response_model=VehiculoSchema, tags=["Autos"])
+def update_auto_route(id: int, vehiculo: VehiculoUpdate, db: Session = Depends(get_db), current_user: str = Depends(auth.get_current_user)):
+    db_obj = db.query(VehiculoModel).filter(VehiculoModel.Id == id).first()
+    if not db_obj:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
     
-    for key, value in auto.dict().items():
-        setattr(db_auto, key, value)
-    
+    update_data = vehiculo.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_obj, key, value)
+            
     db.commit()
-    db.refresh(db_auto)
-    return db_auto
+    db.refresh(db_obj)
+    return db_obj
 
-@router.delete("/{auto_id}")
-def delete_auto(auto_id: int, db: Session = Depends(get_db)):
-    """Eliminar un auto"""
-    db_auto = db.query(model_auto.Auto).filter(model_auto.Auto.id == auto_id).first()
-    if not db_auto:
-        raise HTTPException(status_code=404, detail="Auto no encontrado")
+@auto.delete("/autos/{id}", tags=["Autos"])
+def delete_auto_route(id: int, db: Session = Depends(get_db), current_user: str = Depends(auth.get_current_user)):
+    db_obj = db.query(VehiculoModel).filter(VehiculoModel.Id == id).first()
+    if not db_obj:
+        raise HTTPException(status_code=404, detail="Vehículo no encontrado")
     
-    db.delete(db_auto)
+    db.delete(db_obj)
     db.commit()
-    return {"mensaje": "Auto eliminado exitosamente"}
+    return {"message": f"Vehículo con id {id} eliminado correctamente"}
