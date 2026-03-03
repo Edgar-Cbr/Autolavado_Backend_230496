@@ -27,17 +27,17 @@ def read_auto(id: int, db: Session = Depends(get_db), current_user: str = Depend
 @auto.post("/autos/", response_model=VehiculoSchema, tags=["Autos"])
 def create_auto_route(vehiculo: VehiculoCreate, db: Session = Depends(get_db), current_user: str = Depends(auth.get_current_user)):
     db_auto = VehiculoModel(
-        usuario_Id=vehiculo.usuario_Id, # Asegúrate que coincida con las mayúsculas de tu modelo
+        usuario_Id=vehiculo.usuario_Id,  # Asegúrate que coincida con las mayúsculas de tu modelo
         placa=vehiculo.placa,
-        # marca=vehiculo.marca, # Cuidado: 'marca' NO estaba en el modelo que me pasaste
+        marca=vehiculo.marca,
         modelo=vehiculo.modelo,
         serie=vehiculo.serie,
         color=vehiculo.color,
         tipo=vehiculo.tipo,
-        anio=str(vehiculo.anio) if vehiculo.anio else None, 
+        anio=str(vehiculo.anio) if vehiculo.anio else None,
         estado=vehiculo.estado,
         fecha_registro=vehiculo.fecha_registro,
-        fecha_actualizacion=vehiculo.fecha_actualizacion
+        fecha_actualizacion=vehiculo.fecha_actualizacion,
     )
     db.add(db_auto)
     db.commit()

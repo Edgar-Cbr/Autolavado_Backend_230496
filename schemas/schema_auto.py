@@ -9,7 +9,10 @@ class VehiculoBase(BaseModel):
     '''Clase para modelar los campos de tabla Vehiculo'''
     usuario_Id: int
     placa: str
-    marca: str 
+    # algunos registros de la base de datos pueden no tener marca asignada
+    # así que permitimos None para evitar errores de validación en las
+    # respuestas existentes (422 durante GET).
+    marca: Optional[str] = None
     modelo: str
     serie: str
     color: str
