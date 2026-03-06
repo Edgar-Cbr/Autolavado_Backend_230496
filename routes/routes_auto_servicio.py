@@ -87,3 +87,21 @@ def delete_auto_servicio(id: int, db: Session = Depends(get_db), current_user: s
     if db_auto_servicio is None:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
     return db_auto_servicio
+
+
+# --------------------------------------------------
+# REPORTES
+# --------------------------------------------------
+@auto_servicio.get("/reporte/vehiculos-servicios", tags=["Reportes"])
+def reporte_vehiculos_servicios(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(auth.get_current_user)
+):
+    """Retorna registros de la tabla de vehículos con servicios.
+    La lista es exactamente la consulta a tbd_usuario_vehiculo_servicio pero
+    puede extenderse a joins si se desea nivel de detalle adicional.
+    """
+    resultados = db.query(model_auto_servicio.VehiculoServicio).offset(skip).limit(limit).all()
+    return resultados
